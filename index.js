@@ -1,31 +1,41 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
-const { sequelize } = require('./models'); // import koneksi dari Sequelize
+const express = require("express");
+const cors = require("cors");
+require("dotenv").config();
+const fs = require("fs");
+const path = require("path");
+const { sequelize } = require("./models");
 
 const app = express();
-
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Routes (contoh)
-// const userRoutes = require('./routes/userRoutes');
-// app.use('/users', userRoutes);
+// Auto-load semua file routes/router_*.js
+const routesPath = path.join(__dirname, "router");
 
-// Test koneksi dan jalankan server
+if (fs.existsSync(routesPath)) {
+  fs.readdirSync(routesPath).forEach((file) => {
+    if (file.startsWith("router_") && file.endsWith(".js")) {
+      const route = require(path.join(routesPath, file));
+      const routeName = "/" + file.replace("router_", "").replace(".js", "");
+      app.use(routeName, route);
+      console.log(`Route aktif: [${routeName}] dari file: ${file}`);
+    }
+  });
+}
+
 const PORT = process.env.PORT || 5000;
 
-sequelize.authenticate()
+sequelize
+  .authenticate()
   .then(() => {
-    console.log('Koneksi database berhasil!');
-    return sequelize.sync(); // otomatis sync semua model
+    console.log("✅ Koneksi database berhasil!");
+    return sequelize.sync();
   })
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`Server jalan di http://localhost:${PORT}`);
+      console.log(`🚀 Server jalan di http://localhost:${PORT}`);
     });
   })
   .catch((err) => {
-    console.error('Gagal konek ke database:', err);
+    console.error("❌ Gagal konek ke database:", err);
   });
